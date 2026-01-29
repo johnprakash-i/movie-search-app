@@ -1,5 +1,5 @@
 import type { Movie } from "../types/movie";
-import { Link, useNavigate } from "react-router-dom";
+import {  useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 
 interface Props {
