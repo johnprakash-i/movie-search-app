@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* Custom global styles */
+body {
+  @apply bg-slate-950 text-white font-sans antialiased transition-colors duration-300;
+}
+
+.light body {
+  @apply bg-slate-100 text-slate-900;
+}
+
+button {
+  @apply transition-all duration-200;
+}
