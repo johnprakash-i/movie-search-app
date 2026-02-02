@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { searchMovies } from "../services/omdbApi";
 import type { Movie } from "../types/movie";
 import MovieCard from "../components/MovieCard";
@@ -6,20 +6,25 @@ import SearchBar from "../components/SearchBar";
 import { useDebounce } from "../hooks/useDebounce";
 import MovieCardSkeleton from "../components/MovieCardSkeleton";
 import { useScrollToTop } from "../hooks/useScrollToTop";
+import Pagination from "../components/Pagination";
 
 export default function Home() {
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
   const [movies, setMovies] = useState<Movie[]>([]);
   const [page, setPage] = useState(1);
+const gridRef = useRef<HTMLDivElement | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [totalResults, setTotalResults] = useState(0);
   const debouncedQuery = useDebounce(query, 600);
   useScrollToTop(page);
-const handleSearch = async (pageNumber = 1) => {
-  if (query.length < 3) return;
+  const handleSearch = async (pageNumber = 1) => {
+    if (query.length < 3) return;
     if (!query) return;
+      const maxPages = Math.ceil(totalResults / 10) || 1;
+  if (pageNumber > maxPages) pageNumber = 1;
     setLoading(true);
     setError("");
 
@@ -27,7 +32,7 @@ const handleSearch = async (pageNumber = 1) => {
       const data = await searchMovies(query, pageNumber, type);
       if (data.Response === "True") {
         setMovies(data.Search);
-      
+        setTotalResults(Number(data.totalResults));
         setPage(pageNumber);
       } else {
         setMovies([]);
@@ -40,30 +45,26 @@ const handleSearch = async (pageNumber = 1) => {
     }
   };
 
-
 useEffect(() => {
   if (debouncedQuery.length >= 3) {
     handleSearch(1);
   }
-
-  // If user clears input, show initial movies again
-  if (debouncedQuery.length === 0) {
-    fetchInitialMovies();
-  }
 }, [debouncedQuery, type]);
 
-  const fetchInitialMovies = async () => {
+
+
+  const fetchInitialMovies = async (pageNumber = 1) => {
     setLoading(true);
     setError("");
 
     try {
-      const randomPage = Math.floor(Math.random() * 5) + 1; 
-      const data = await searchMovies("Marvel", randomPage);
+     
+      const data = await searchMovies("Marvel", pageNumber);
 
       if (data.Response === "True") {
         setMovies(data.Search);
-       
-        setPage(randomPage);
+     setTotalResults(Number(data.totalResults));
+        setPage(pageNumber);
       }
     } catch {
       setError("Failed to load movies");
@@ -74,6 +75,21 @@ useEffect(() => {
   useEffect(() => {
     fetchInitialMovies();
   }, []);
+const handlePageChange = (newPage: number) => {
+  if (newPage === page) return;
+
+  if (debouncedQuery.length >= 3) {
+    handleSearch(newPage);
+  } else {
+    fetchInitialMovies(newPage);
+  }
+
+  // ⭐ Scroll to movie grid instead of page top
+  setTimeout(() => {
+    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 100);
+};
+
 
   return (
     <div>
@@ -104,13 +120,18 @@ useEffect(() => {
         </div>
       )}
 
-      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" ref={gridRef}>
         {movies.map((movie) => (
           <MovieCard key={movie.imdbID} movie={movie} />
         ))}
       </div>
-
-     
+      {!loading && movies.length > 0 && (
+        <Pagination
+          currentPage={page}
+          totalResults={totalResults}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   );
 }
