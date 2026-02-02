@@ -59,7 +59,8 @@ useEffect(() => {
 
     try {
      
-      const data = await searchMovies("Marvel", pageNumber);
+     const data = await searchMovies("Marvel", pageNumber, type || undefined);
+
 
       if (data.Response === "True") {
         setMovies(data.Search);
@@ -72,9 +73,12 @@ useEffect(() => {
       setLoading(false);
     }
   };
-  useEffect(() => {
+useEffect(() => {
+  if (debouncedQuery.length === 0) {
     fetchInitialMovies();
-  }, []);
+  }
+}, [type]);
+
 const handlePageChange = (newPage: number) => {
   if (newPage === page) return;
 
